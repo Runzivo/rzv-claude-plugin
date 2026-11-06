@@ -19,7 +19,8 @@ Delete a Runzivo sandbox. Deleting is permanent. Arguments: $ARGUMENTS
 4. Only after confirmation, run `rzv sandboxes delete <id> --json`.
 5. Remove the SSH alias `rzv` wrote for it, only if `rzv` owns the file:
    run `head -n 1 ~/.ssh/rzv/<id>.conf`, and if it starts with
-   `# Managed by rzv.`, run `rm -f ~/.ssh/rzv/<id>.conf`. Remove no other file.
+   `# Managed by rzv.`, run `rm -f ~/.ssh/rzv/<id>.conf`. If the file is
+   missing, skip this step; that is not a failure. Remove no other file.
 
 ## Tell the user
 

@@ -15,7 +15,7 @@ Creates a sandbox named `claude-<name>` (a timestamp when no name is given).
 - `--disk-gib`: 5 to 64.
 
 Claude runs `rzv sandboxes create --name claude-<name> ... --json` once,
-checks `rzv sandboxes get <id> --json` every 10 seconds until it runs (up to
+checks `sleep 10 && rzv sandboxes get <id> --json` (one approval each) until it runs (up to
 five minutes), then writes the SSH alias as `connect` does. It never retries a create on its own.
 
 ## /runzivo:connect <id>

@@ -13,9 +13,11 @@ Wake a Runzivo sandbox. Arguments: $ARGUMENTS
 2. Run `rzv sandboxes start <id> --json`. A sandbox past its lifetime
    cannot wake: offer `/runzivo:create` instead.
 3. Wait until it runs: run `rzv sandboxes get <id> --json` and read
-   `sandbox.status`. While it is `pending`, `creating`, `provisioning` or
-   `starting`, run `sleep 10` and check again, for up to 5 minutes. Stop on
-   `failed` (report `sandbox.error.code`), `stopped`, `expired` or `deleted`.
+   `sandbox.status`. While it is `pending`, `creating`, `provisioning`,
+   `starting`, `stopping` or `cleanup_pending`, check again with the single
+   command `sleep 10 && rzv sandboxes get <id> --json`, for up to 5 minutes.
+   Stop on `failed` (report `sandbox.error.code`), `expired` or `deleted`. Right
+   after the start, `stopped` also means wait; after 1 minute it means stop.
 4. Run `rzv sandboxes ssh-config <id> --write`, then `ssh <id>.rzv true`.
 5. Report `sandbox.status` and time left (`sandbox.remaining_seconds`).
 

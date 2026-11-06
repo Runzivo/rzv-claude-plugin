@@ -54,7 +54,7 @@ for name in sorted(os.listdir(os.path.join(plugin, "skills"))):
 check("the seven skills", sorted(skills) == ["connect", "create", "delete", "sandbox", "sleep", "status", "wake"], str(sorted(skills)))
 for name, (fm, text) in skills.items():
     # A one-line value or a YAML list; anything indented after the key counts.
-    tools = re.search(r"^allowed-tools:(.*(?:\n[ \t]+.*)*)", fm, re.M)
+    tools = re.search(r"^allowed-tools:(.*(?:\n(?:[ \t]+|-).*)*)", fm, re.M)
     granted = re.findall(r"[^\s,\[\]'\"-][^\s,\[\]'\"]*", tools.group(1)) if tools else []
     check(f"{name}: allowed-tools only Read, Grep, Glob, LS", set(granted) <= {"Read", "Grep", "Glob", "LS"}, str(granted))
     check(f"{name}: no plugin-root paths", "${" not in text, "contains ${...}")
@@ -70,7 +70,7 @@ def has(name, *needles):
     check(f"{name}: gives {', '.join(needles)}", not missing, "missing " + ", ".join(missing))
 
 for name in ("create", "wake", "connect"):
-    has(name, "sleep 10", "up to 5 minutes")
+    has(name, "sleep 10 && rzv sandboxes get <id> --json", "up to 5 minutes")
 has("create", "rzv sandboxes create --name claude-<slug>", "--size", "--lifetime", "--disk-gib", "rzv sandboxes ssh-config <id> --write", "Never retry a create")
 has("connect", "rzv sandboxes ssh-config <id> --write", "ssh <id>.rzv")
 has("status", "rzv sandboxes list --json", "rzv sandboxes get <id> --json", "remaining_seconds", "expires_at", "credits_used")

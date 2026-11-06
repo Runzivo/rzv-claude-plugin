@@ -66,7 +66,7 @@ if [ -n "${E2E_LOCK:-}" ]; then
 fi
 
 # Test-only approvals for the commands the skills tell Claude to run.
-allow=(--allowedTools "Bash(rzv *)" "Bash(ssh *)" "Bash(date *)" "Bash(sleep *)" "Bash(head -n 1 ~/.ssh/rzv/*)" "Bash(head -n 1 $HOME/.ssh/rzv/*)" "Bash(rm -f ~/.ssh/rzv/*)" "Bash(rm -f $HOME/.ssh/rzv/*)" "Bash(~/.local/bin/rzv *)" "Bash(command -v *)" "Bash(which *)" "Bash(ls *)")
+allow=(--allowedTools "Bash(rzv *)" "Bash(ssh *)" "Bash(date *)" "Bash(sleep *)" "Bash(sleep 10 && rzv sandboxes get *)" "Bash(head -n 1 ~/.ssh/rzv/*)" "Bash(head -n 1 $HOME/.ssh/rzv/*)" "Bash(rm -f ~/.ssh/rzv/*)" "Bash(rm -f $HOME/.ssh/rzv/*)" "Bash(~/.local/bin/rzv *)" "Bash(command -v *)" "Bash(which *)" "Bash(ls *)")
 
 # turn <label> <prompt> [extra claude flags]: one claude -p turn with the plugin.
 turn() {
@@ -100,6 +100,7 @@ log "1. errors: no rzv, not signed in"
 # Claude's tool shell gets no rzv on PATH and an empty home, so
 # ~/.local/bin/rzv is missing too. claude itself keeps its own sign-in.
 nohome=$(mktemp -d "$evidence/nohome.XXXXXX")
+case "$nohome" in *[\"\\]*) fail "E2E_EVIDENCE must not contain quotes or backslashes" ;; esac
 turn err-no-rzv "/runzivo:status" --settings "{\"env\":{\"HOME\":\"$nohome\",\"PATH\":\"/usr/bin:/bin\"}}"
 grep -q "install.sh" "$evidence/err-no-rzv.txt" || fail "no install hint without rzv"
 RZV_PROFILE="e2e-no-such-profile-$$" turn err-signed-out "/runzivo:status"
