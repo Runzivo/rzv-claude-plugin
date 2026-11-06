@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# A stand-in for rzv used by tests/run.sh. It keeps state in $FAKE_STATE and
+# logs every call to $FAKE_STATE/calls. FAKE_ERROR=<code> makes sandbox calls
+# fail the way rzv --json does. FAKE_VERSION overrides the version.
+set -euo pipefail
+state=${FAKE_STATE:?}
+printf '%s\n' "$*" >> "$state/calls"
+id=sbx_0123456789abcdef01234567
+json=0
+for a in "$@"; do [ "$a" = --json ] && json=1; done
+sandbox() { printf '{"workspace_id":"tnt_test","sandbox":{"id":"%s","name":"%s","size":"2vcpu-8gb","status":"%s","remaining_seconds":28000,"credits_used":1.5}}\n' "$id" "$(cat "$state/name" 2>/dev/null || echo x)" "$1"; }
+case "$1" in
+  --version) echo "rzv ${FAKE_VERSION:-0.26.0} (commit test)"; exit 0 ;;
+  whoami) echo "Signed in as tester"; exit 0 ;;
+esac
+if [ -n "${FAKE_FAILED:-}" ] && [ "$2" = get ]; then
+  printf '{"sandbox":{"error":{"code":"%s","message":"x"},"id":"%s","status":"failed"}}\n' "$FAKE_FAILED" "$id"; exit 0
+fi
+if [ -n "${FAKE_ERROR:-}" ]; then
+  if [ "$json" = 1 ]; then printf '{"error":"%s","message":"fake failure"}\n' "$FAKE_ERROR" >&2; else echo "rzv: fake failure" >&2; fi
+  [ "$FAKE_ERROR" = authentication_required ] && exit 3
+  [ "$FAKE_ERROR" = sandbox_not_found ] && exit 6
+  exit 1
+fi
+[ "$1" = sandboxes ] || exit 2
+case "$2" in
+  create) shift 2; while [ $# -gt 0 ]; do [ "$1" = --name ] && echo "$2" > "$state/name"; shift; done
+    echo starting > "$state/status"; sandbox pending ;;
+  get) s=$(cat "$state/status"); [ "$s" = starting ] && echo running > "$state/status"
+    if [ "$json" = 1 ]; then sandbox "$s"; else echo "x [$id]: $s"; echo "Running time: 1m30s, credits used: 1.5 min"; fi ;;
+  list) printf 'ID NAME STATUS\n%s a running\nsbx_other b deleted\n' "$id" ;;
+  stop) echo stopped > "$state/status"; sandbox stopped ;;
+  start) echo starting > "$state/status"; sandbox starting ;;
+  delete) echo deleted > "$state/status"; sandbox deleting ;;
+  ssh-config) mkdir -p "$HOME/.ssh/rzv"; printf '# Managed by rzv.\nHost %s.rzv\n' "$3" > "$HOME/.ssh/rzv/$3.conf" ;;
+  *) exit 2 ;;
+esac

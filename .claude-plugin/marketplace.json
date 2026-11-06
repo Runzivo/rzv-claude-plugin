@@ -1,0 +1,16 @@
+{
+  "name": "runzivo",
+  "description": "Runzivo plugins for Claude Code",
+  "owner": {
+    "name": "Runzivo",
+    "url": "https://runzivo.dev"
+  },
+  "plugins": [
+    {
+      "name": "runzivo",
+      "source": "./",
+      "description": "Runzivo sandboxes in Claude Code: create, connect, status, sleep, wake and delete through the rzv CLI.",
+      "category": "development"
+    }
+  ]
+}

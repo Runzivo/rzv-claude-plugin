@@ -1,0 +1,19 @@
+{
+  "name": "runzivo",
+  "displayName": "Runzivo",
+  "version": "0.1.0",
+  "description": "Create, connect to, check, sleep, wake and delete Runzivo sandboxes (Linux VMs) from Claude Code, and run work in them over SSH. Uses the rzv CLI.",
+  "author": {
+    "name": "Runzivo",
+    "url": "https://runzivo.dev"
+  },
+  "homepage": "https://github.com/Runzivo/rzv-claude-plugin",
+  "repository": "https://github.com/Runzivo/rzv-claude-plugin",
+  "license": "MIT",
+  "keywords": ["runzivo", "sandbox", "remote-development", "ssh", "vm", "cloud-dev-environment"],
+  "icon": "./assets/icon.png",
+  "documentationUrl": "https://github.com/Runzivo/rzv-claude-plugin#readme",
+  "supportUrl": "https://github.com/Runzivo/rzv-claude-plugin/issues",
+  "privacyPolicyUrl": "https://runzivo.dev/legal/privacy",
+  "termsOfServiceUrl": "https://runzivo.dev/legal/terms"
+}

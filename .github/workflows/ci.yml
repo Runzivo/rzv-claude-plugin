@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    # Pull requests from forks never run on Runzivo runners.
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: rzv-ubuntu-24.04-x64-2vcpu-8gb
+    timeout-minutes: 10
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Manifests are valid JSON
+        run: for f in .claude-plugin/plugin.json .claude-plugin/marketplace.json; do python3 -I -m json.tool "$f" >/dev/null; done
+      - name: Manifest names and version agree
+        run: |
+          python3 -I - <<'PY'
+          import json
+          p = json.load(open(".claude-plugin/plugin.json"))
+          m = json.load(open(".claude-plugin/marketplace.json"))
+          assert [e["name"] for e in m["plugins"]] == [p["name"]], "marketplace entry must match plugin.json name"
+          assert m["plugins"][0]["source"] == "./"
+          assert p.get("version"), "plugin.json needs a version"
+          PY
+      - name: Shell scripts
+        run: |
+          # Pinned release with its SHA-256, so CI does not depend on the Ubuntu package mirror.
+          if ! command -v shellcheck >/dev/null; then
+            curl -fsSL -o "$RUNNER_TEMP/sc.tar.xz" https://github.com/koalaman/shellcheck/releases/download/v0.10.0/shellcheck-v0.10.0.linux.x86_64.tar.xz
+            echo "6c881ab0698e4e6ea235245f22832860544f17ba386442fe7e9d629f8cbedf87  $RUNNER_TEMP/sc.tar.xz" | sha256sum -c -
+            tar -xJf "$RUNNER_TEMP/sc.tar.xz" -C "$RUNNER_TEMP"
+            sudo install -m 0755 "$RUNNER_TEMP/shellcheck-v0.10.0/shellcheck" /usr/local/bin/shellcheck
+          fi
+          shellcheck scripts/*.sh tests/run.sh tests/fake-rzv
+      - name: Offline tests
+        run: tests/run.sh
