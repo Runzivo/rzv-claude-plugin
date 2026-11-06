@@ -11,9 +11,9 @@ Connect to a Runzivo sandbox. Arguments: $ARGUMENTS
    run `rzv sandboxes list` and ask the user which one to use.
 2. Run `rzv sandboxes get <id> --json` and read `sandbox.status`. If it is
    `stopped`, offer `/runzivo:wake <id>` and stop. If it is `failed`
-   (report `sandbox.error.code`), `expired` or `deleted`, say so and offer
+   (report `sandbox.error.code`), `expired`, `deleted` or `cleanup_pending`, say so and offer
    `/runzivo:create`. If it is `pending`, `creating`, `provisioning`,
-   `starting`, `stopping` or `cleanup_pending`, check again with the single
+   `starting` or `stopping`, check again with the single
    command `sleep 10 && rzv sandboxes get <id> --json`, for up to 5 minutes.
 3. Run `rzv sandboxes ssh-config <id> --write`. It adds the `<id>.rzv` host
    under `~/.ssh/rzv/` and one `Include` line in `~/.ssh/config`.

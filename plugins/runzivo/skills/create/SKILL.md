@@ -23,9 +23,10 @@ Create one Runzivo sandbox. Arguments: $ARGUMENTS
    your own: each create starts a new billed sandbox.
 4. Wait until it runs: run `rzv sandboxes get <id> --json` and read
    `sandbox.status`. While it is `pending`, `creating`, `provisioning`,
-   `starting`, `stopping` or `cleanup_pending`, check again with the single
+   `starting` or `stopping`, check again with the single
    command `sleep 10 && rzv sandboxes get <id> --json`, for up to 5 minutes.
-   Stop on `failed` (report `sandbox.error.code`), `expired` or `deleted`, and on
+   Stop on `failed` (report `sandbox.error.code`), `expired`, `deleted` or
+   `cleanup_pending`, and on
    `stopped`.
 5. Write the SSH alias: `rzv sandboxes ssh-config <id> --write`.
 6. Check SSH with `ssh <id>.rzv true`. It waits while SSH starts; if it still
