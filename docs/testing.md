@@ -37,7 +37,10 @@ RZV_PROFILE=<profile> E2E_EVIDENCE=<dir> scripts/20-shared-e2e.sh
 ```
 
 The plugin grants no tools, so the test passes `--allowedTools` for the
-commands the skills run (`rzv`, `ssh`, `date`, removing an SSH alias). Only
+commands the skills run (`rzv`, `ssh`, `date`, `sleep`, `head` and `rm -f` of
+an SSH alias, plus `command -v`, `which` and `ls` to look for `rzv`). The
+no-`rzv` case points the tool shell's `HOME` and `PATH` at an empty directory
+with `--settings`. Only
 the test does this; users approve each command. It needs `claude`, `rzv`, `ssh` and `python3`, a free sandbox slot, and about
 ten minutes. It uses the `claude-haiku-5-5` model (`E2E_MODEL`), aborts unless
 `rzv whoami` shows the `E2E_ENVIRONMENT` environment (default `shared`), and

@@ -4,7 +4,8 @@
   icon and a licence. There are no scripts, hooks, MCP servers, monitors or
   executables, and no pre-approved tools: you approve each command Claude runs.
 - **Calls**: the skills tell Claude to run the `rzv` CLI, from `PATH` or
-  `~/.local/bin/rzv`, plus `ssh`, `rsync` and `date` for sandbox work.
+  `~/.local/bin/rzv`, plus `ssh`, `rsync`, `date` and `sleep` for sandbox
+  work. Delete removes the `~/.ssh/rzv/<id>.conf` alias that `rzv` wrote.
 - **Sends**: `rzv` sends the sandbox name, size, lifetime and disk size you
   choose to the Runzivo API, with your existing `rzv` sign-in. The plugin adds
   no telemetry. Sandboxes it creates are named `claude-...` so Runzivo can

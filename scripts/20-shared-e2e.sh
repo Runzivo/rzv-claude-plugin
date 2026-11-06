@@ -15,11 +15,11 @@ set -euo pipefail
 
 here=$(cd "$(dirname "$0")/.." && pwd)
 plugin="$here/plugins/runzivo"
-claude_bin=$(command -v claude)
+claude_bin=$(command -v claude) || { echo "claude is not on PATH" >&2; exit 1; }
 evidence=${E2E_EVIDENCE:?set E2E_EVIDENCE to an evidence directory}
 environment=${E2E_ENVIRONMENT:-shared}
 model=${E2E_MODEL:-claude-haiku-5-5}
-rzv=${RZV_BIN:-$(command -v rzv)}
+rzv=${RZV_BIN:-$(command -v rzv)} || { echo "rzv is not on PATH" >&2; exit 1; }
 mkdir -p "$evidence"
 name="e2e-$(date -u +%m%d-%H%M%S)"
 sandbox=""
@@ -43,7 +43,7 @@ cleanup() {
     "$rzv" sandboxes delete "$sandbox" --json >/dev/null 2>&1 || true
     rm -f "$HOME/.ssh/rzv/$sandbox.conf"
   fi
-  if [ -n "$locked" ]; then rm -f "$E2E_LOCK/owner"; rmdir "$E2E_LOCK"; fi
+  if [ -n "$locked" ]; then rm -f "$E2E_LOCK/owner"; rmdir "$E2E_LOCK" || log "could not remove lock $E2E_LOCK"; fi
   [ -z "$nohome" ] || rm -rf "$nohome"
   if [ "$status" -eq 0 ]; then log "PASS"; else log "exit $status"; fi
   log "evidence: $evidence"
@@ -66,7 +66,7 @@ if [ -n "${E2E_LOCK:-}" ]; then
 fi
 
 # Test-only approvals for the commands the skills tell Claude to run.
-allow=(--allowedTools "Bash(rzv *)" "Bash(ssh *)" "Bash(date *)" "Bash(rm -f ~/.ssh/rzv/*)" "Bash(rm -f $HOME/.ssh/rzv/*)" "Bash(~/.local/bin/rzv *)" "Bash(command -v *)" "Bash(which *)" "Bash(ls *)")
+allow=(--allowedTools "Bash(rzv *)" "Bash(ssh *)" "Bash(date *)" "Bash(sleep *)" "Bash(head -n 1 ~/.ssh/rzv/*)" "Bash(head -n 1 $HOME/.ssh/rzv/*)" "Bash(rm -f ~/.ssh/rzv/*)" "Bash(rm -f $HOME/.ssh/rzv/*)" "Bash(~/.local/bin/rzv *)" "Bash(command -v *)" "Bash(which *)" "Bash(ls *)")
 
 # turn <label> <prompt> [extra claude flags]: one claude -p turn with the plugin.
 turn() {
@@ -97,11 +97,10 @@ wait_status() {
 }
 
 log "1. errors: no rzv, not signed in"
-# No rzv on PATH and an empty home, so ~/.local/bin/rzv is missing too.
+# Claude's tool shell gets no rzv on PATH and an empty home, so
+# ~/.local/bin/rzv is missing too. claude itself keeps its own sign-in.
 nohome=$(mktemp -d "$evidence/nohome.XXXXXX")
-config_dir=${CLAUDE_CONFIG_DIR:-$HOME/.claude}
-HOME="$nohome" CLAUDE_CONFIG_DIR="$config_dir" PATH=/usr/bin:/bin \
-  turn err-no-rzv "/runzivo:status"
+turn err-no-rzv "/runzivo:status" --settings "{\"env\":{\"HOME\":\"$nohome\",\"PATH\":\"/usr/bin:/bin\"}}"
 grep -q "install.sh" "$evidence/err-no-rzv.txt" || fail "no install hint without rzv"
 RZV_PROFILE="e2e-no-such-profile-$$" turn err-signed-out "/runzivo:status"
 grep -q "rzv login" "$evidence/err-signed-out.txt" || fail "no sign-in hint when signed out"

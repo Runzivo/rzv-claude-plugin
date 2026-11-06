@@ -6,7 +6,7 @@ Runzivo sandbox" or name a sandbox id.
 
 What Claude does:
 
-1. Finds a running sandbox with `/runzivo:status`, or asks you to create or
+1. Finds a running sandbox with `rzv sandboxes list --json`, or asks you to create or
    wake one. It never creates or wakes one itself.
 2. Writes the `<id>.rzv` SSH alias.
 3. Runs commands with `ssh <id>.rzv 'cd /workspace && ...'`, and long jobs
@@ -30,9 +30,7 @@ it in `/workspace`. Claude is told the same.
 
 ## What is kept
 
-`/workspace` is kept when a sandbox sleeps. Newer Runzivo services also keep
-the rest of the disk until the sandbox expires, so a key file outside
-`/workspace` can stay: remove it when you are done. Expiry or delete removes
-everything.
+`/workspace` is kept when a sandbox sleeps. Do not rely on anything outside
+it. Remove a key file when you are done; expiry or delete removes everything.
 
 Back to the [README](../README.md).

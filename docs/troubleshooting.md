@@ -5,7 +5,7 @@ Claude shows the `rzv` error and the next step. `rzv --version` and
 
 | Message | What to do |
 | - | - |
-| `rzv: command not found` | `curl -fsSL https://runzivo.dev/downloads/rzv/install.sh \| sh` |
+| command not found: `rzv` | `curl -fsSL https://runzivo.dev/downloads/rzv/install.sh \| sh` |
 | Unknown command or flag | `rzv --version`; below 0.26.0, install again with the command above |
 | Sign in with `rzv login` | Run `rzv login` in a terminal; it opens your browser |
 | `credit_exhausted` | Add credit in the Runzivo portal, under Billing |

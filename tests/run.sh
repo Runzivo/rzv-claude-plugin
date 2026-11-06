@@ -20,6 +20,7 @@ allowed_ext = {".md", ".txt", ".json", ".yaml", ".yml", ".png", ".jpg", ".jpeg",
 allowed_names = {"LICENSE", "README", ".gitignore"}
 bad = []
 for d, dirs, files in os.walk(plugin):
+    bad += [os.path.relpath(os.path.join(d, x), plugin) for x in dirs if os.path.islink(os.path.join(d, x))]
     for f in files:
         p = os.path.join(d, f)
         if os.path.islink(p) or not (f in allowed_names or os.path.splitext(f)[1].lower() in allowed_ext):
@@ -37,19 +38,24 @@ check("plugin.json has no tool, hook or server fields", not {"hooks", "mcpServer
 changelog = open(os.path.join(root, "CHANGELOG.md")).read()
 top = re.search(r"^## (\S+)", changelog, re.M)
 check("CHANGELOG top section matches the version", bool(top) and top.group(1) == p.get("version"), f"{top and top.group(1)} vs {p.get('version')}")
-check("icon is in the plugin", os.path.isfile(os.path.join(plugin, p["icon"])))
+check("icon is in the plugin", os.path.isfile(os.path.join(plugin, p.get("icon", "-"))))
 
 skills = {}
 for name in sorted(os.listdir(os.path.join(plugin, "skills"))):
-    text = open(os.path.join(plugin, "skills", name, "SKILL.md")).read()
+    path = os.path.join(plugin, "skills", name, "SKILL.md")
+    if not os.path.isfile(path):
+        check(f"skills/{name} is a skill folder", False, "no SKILL.md")
+        continue
+    text = open(path).read()
     fm = re.match(r"---\n(.*?)\n---\n", text, re.S)
     check(f"{name}: has frontmatter", bool(fm))
     skills[name] = (fm.group(1) if fm else "", text)
 
 check("the seven skills", sorted(skills) == ["connect", "create", "delete", "sandbox", "sleep", "status", "wake"], str(sorted(skills)))
 for name, (fm, text) in skills.items():
-    tools = re.search(r"^allowed-tools:(.*)$", fm, re.M)
-    granted = re.findall(r"[^\s,]+", tools.group(1)) if tools else []
+    # A one-line value or a YAML list; anything indented after the key counts.
+    tools = re.search(r"^allowed-tools:(.*(?:\n[ \t]+.*)*)", fm, re.M)
+    granted = re.findall(r"[^\s,\[\]'\"-][^\s,\[\]'\"]*", tools.group(1)) if tools else []
     check(f"{name}: allowed-tools only Read, Grep, Glob, LS", set(granted) <= {"Read", "Grep", "Glob", "LS"}, str(granted))
     check(f"{name}: no plugin-root paths", "${" not in text, "contains ${...}")
     check(f"{name}: tells how to install rzv", "runzivo.dev/downloads/rzv/install.sh | sh" in text)
@@ -63,12 +69,14 @@ def has(name, *needles):
     missing = [n for n in needles if n not in text]
     check(f"{name}: gives {', '.join(needles)}", not missing, "missing " + ", ".join(missing))
 
+for name in ("create", "wake", "connect"):
+    has(name, "sleep 10", "up to 5 minutes")
 has("create", "rzv sandboxes create --name claude-<slug>", "--size", "--lifetime", "--disk-gib", "rzv sandboxes ssh-config <id> --write", "Never retry a create")
 has("connect", "rzv sandboxes ssh-config <id> --write", "ssh <id>.rzv")
 has("status", "rzv sandboxes list --json", "rzv sandboxes get <id> --json", "remaining_seconds", "expires_at", "credits_used")
 has("sleep", "rzv sandboxes stop <id> --json")
 has("wake", "rzv sandboxes start <id> --json", "rzv sandboxes ssh-config <id> --write")
-has("delete", "--yes", "ask the user to confirm and stop here", "rzv sandboxes delete <id> --json", "rm -f ~/.ssh/rzv/<id>.conf")
+has("delete", "# Managed by rzv.", "--yes", "ask the user to confirm and stop here", "rzv sandboxes delete <id> --json", "rm -f ~/.ssh/rzv/<id>.conf")
 has("sandbox", "ssh <id>.rzv 'cd /workspace", "Never create, wake, sleep or delete", "mode 600")
 
 if failures:
