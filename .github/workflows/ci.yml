@@ -18,17 +18,7 @@ jobs:
       - name: Check out
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Manifests are valid JSON
-        run: for f in .claude-plugin/plugin.json .claude-plugin/marketplace.json; do python3 -I -m json.tool "$f" >/dev/null; done
-      - name: Manifest names and version agree
-        run: |
-          python3 -I - <<'PY'
-          import json
-          p = json.load(open(".claude-plugin/plugin.json"))
-          m = json.load(open(".claude-plugin/marketplace.json"))
-          assert [e["name"] for e in m["plugins"]] == [p["name"]], "marketplace entry must match plugin.json name"
-          assert m["plugins"][0]["source"] == "./"
-          assert p.get("version"), "plugin.json needs a version"
-          PY
+        run: for f in plugins/runzivo/.claude-plugin/plugin.json .claude-plugin/marketplace.json; do python3 -I -m json.tool "$f" >/dev/null; done
       - name: Shell scripts
         run: |
           # Pinned release with its SHA-256, so CI does not depend on the Ubuntu package mirror.
@@ -38,6 +28,6 @@ jobs:
             tar -xJf "$RUNNER_TEMP/sc.tar.xz" -C "$RUNNER_TEMP"
             sudo install -m 0755 "$RUNNER_TEMP/shellcheck-v0.10.0/shellcheck" /usr/local/bin/shellcheck
           fi
-          shellcheck scripts/*.sh tests/run.sh tests/fake-rzv
-      - name: Offline tests
+          shellcheck scripts/*.sh tests/run.sh
+      - name: Plugin folder and skill checks
         run: tests/run.sh

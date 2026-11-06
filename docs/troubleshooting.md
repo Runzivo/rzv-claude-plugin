@@ -1,12 +1,12 @@
 # Troubleshooting
 
-Every failure ends with a "Next step" line. `scripts/runzivo.sh doctor` shows
-which `rzv` the plugin uses and who is signed in.
+Claude shows the `rzv` error and the next step. `rzv --version` and
+`rzv whoami` show which CLI you have and who is signed in.
 
 | Message | What to do |
 | - | - |
-| `rzv` was not found | `curl -fsSL https://runzivo.dev/downloads/rzv/install.sh \| sh`, or set `RZV_BIN` |
-| rzv ... is too old | Install again with the command above (0.26.0 or later) |
+| command not found: `rzv` | `curl -fsSL https://runzivo.dev/downloads/rzv/install.sh \| sh` |
+| Unknown command or flag | `rzv --version`; below 0.26.0, install again with the command above |
 | Sign in with `rzv login` | Run `rzv login` in a terminal; it opens your browser |
 | `credit_exhausted` | Add credit in the Runzivo portal, under Billing |
 | `sandbox_limit_reached` | Sleep or delete a running sandbox, then retry |
@@ -14,7 +14,8 @@ which `rzv` the plugin uses and who is signed in.
 | `plan_required`, `size_unavailable` | Pick a size from `rzv sandboxes sizes` |
 | `sandbox_expired` | The lifetime ended; create a new sandbox |
 | `sandbox_wrong_state` | It is starting or stopping; check status shortly |
-| still starting | Run `/runzivo:connect <id>` again in a minute |
+| SSH still starting | Run `/runzivo:connect <id>` again in a minute |
+| Claude keeps asking to run `rzv` | Approve it, or allow `Bash(rzv *)` in `/permissions` |
 
 ## SSH
 

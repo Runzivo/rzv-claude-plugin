@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.0 (2026-11-06)
+
+- The plugin now lives in `plugins/runzivo/`, which holds only Markdown, JSON,
+  the icon and the licence, as Anthropic's directory requires. The repository
+  root stays the `runzivo` marketplace; install with the same commands.
+- Skills are instructions only. Claude runs `rzv` commands itself, and you
+  approve each one: the plugin no longer ships `scripts/runzivo.sh` or grants
+  any tools. `RZV_BIN` is no longer read; `rzv` comes from PATH or
+  `~/.local/bin`.
+- `/runzivo:delete` still deletes only after you confirm or pass `--yes`.
+
 ## 0.1.0 (2026-11-06)
 
 - First release: `/runzivo:create`, `connect`, `status`, `sleep`, `wake` and
