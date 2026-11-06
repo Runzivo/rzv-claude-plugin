@@ -17,7 +17,7 @@ if [ -n "${FAKE_FAILED:-}" ] && [ "$2" = get ]; then
   printf '{"sandbox":{"error":{"code":"%s","message":"x"},"id":"%s","status":"failed"}}\n' "$FAKE_FAILED" "$id"; exit 0
 fi
 if [ -n "${FAKE_ERROR:-}" ]; then
-  [ "$json" = 1 ] && printf '{"error":"%s","message":"fake failure"}\n' "$FAKE_ERROR" >&2 || echo "rzv: fake failure" >&2
+  if [ "$json" = 1 ]; then printf '{"error":"%s","message":"fake failure"}\n' "$FAKE_ERROR" >&2; else echo "rzv: fake failure" >&2; fi
   [ "$FAKE_ERROR" = authentication_required ] && exit 3
   [ "$FAKE_ERROR" = sandbox_not_found ] && exit 6
   exit 1

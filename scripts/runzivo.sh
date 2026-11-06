@@ -40,7 +40,9 @@ version_ge() {
 # Find rzv in RZV_BIN, then PATH, then ~/.local/bin, and check its version.
 locate_rzv() {
   if [ -n "${RZV_BIN:-}" ]; then
-    [ -f "$RZV_BIN" ] && [ -x "$RZV_BIN" ] || fail 127 "RZV_BIN ($RZV_BIN) is not an executable file. $install_hint"
+    if [ ! -f "$RZV_BIN" ] || [ ! -x "$RZV_BIN" ]; then
+      fail 127 "RZV_BIN ($RZV_BIN) is not an executable file. $install_hint"
+    fi
     rzv=$RZV_BIN
   elif rzv=$(command -v rzv 2>/dev/null) && [ -n "$rzv" ]; then
     :
@@ -173,7 +175,11 @@ create() {
   done
   case "$size" in '' | 2vcpu-8gb | 4vcpu-16gb | 8vcpu-32gb | 16vcpu-64gb) ;; *) fail 2 "--size must be 2vcpu-8gb, 4vcpu-16gb, 8vcpu-32gb or 16vcpu-64gb." ;; esac
   case "$lifetime" in '' | 8h | 12h | 24h) ;; *) fail 2 "--lifetime must be 8h, 12h or 24h." ;; esac
-  case "$disk" in '') ;; *[!0-9]*) fail 2 "--disk-gib must be a whole number from 5 to 64." ;; *) [ "$disk" -ge 5 ] && [ "$disk" -le 64 ] || fail 2 "--disk-gib must be a whole number from 5 to 64." ;; esac
+  case "$disk" in
+    '') ;;
+    *[!0-9]*) fail 2 "--disk-gib must be a whole number from 5 to 64." ;;
+    *) if [ "$disk" -lt 5 ] || [ "$disk" -gt 64 ]; then fail 2 "--disk-gib must be a whole number from 5 to 64."; fi ;;
+  esac
   # Plugin sandboxes are named claude-<slug> so their usage can be counted.
   slug=$(printf '%s' "$slug" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9-' '-' | tr -s '-' | cut -c 1-40 | sed 's/^-//; s/-$//')
   slug=${slug#claude-}

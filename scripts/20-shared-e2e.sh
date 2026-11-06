@@ -62,7 +62,9 @@ turn() {
   local label=$1 prompt=$2
   shift 2
   log "claude -p: $prompt"
-  claude -p --plugin-dir "$here" --model "$model" --output-format json "$@" "$prompt" \
+  # The prompt goes on stdin: --allowedTools takes several values and would
+  # swallow a prompt argument after it.
+  printf '%s' "$prompt" | claude -p --plugin-dir "$here" --model "$model" --output-format json "$@" \
     > "$evidence/$label.json" 2> "$evidence/$label.err" || fail "claude -p failed for $label"
   python3 -I - "$evidence/$label.json" <<'PY' | tee "$evidence/$label.txt" >&2
 import json, sys
