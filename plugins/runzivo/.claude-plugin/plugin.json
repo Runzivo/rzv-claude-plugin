@@ -1,7 +1,7 @@
 {
   "name": "runzivo",
   "displayName": "Runzivo",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Create, connect to, check, sleep, wake and delete Runzivo sandboxes (Linux VMs) from Claude Code, and run work in them over SSH. Uses the rzv CLI.",
   "author": {
     "name": "Runzivo",
