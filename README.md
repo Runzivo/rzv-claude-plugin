@@ -6,6 +6,10 @@ slash commands to create a sandbox, connect to it over SSH or from your
 editor, check its time left and credits, put it to sleep, wake it, and delete
 it. A skill teaches Claude to run builds and tests in the sandbox over SSH.
 
+[![CI](https://github.com/Runzivo/rzv-claude-plugin/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Runzivo/rzv-claude-plugin/actions/workflows/ci.yml) [![Latest release](https://img.shields.io/github/v/release/Runzivo/rzv-claude-plugin)](https://github.com/Runzivo/rzv-claude-plugin/releases/latest) [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE) [![Runzivo](https://img.shields.io/badge/Runzivo-sandboxes-0B0F14)](https://runzivo.dev/sandboxes/)
+
+<img src="assets/demo.gif" width="1200" alt="Animated demo of Runzivo sandboxes for Claude Code, in a terminal panel: the rzv install and claude plugin install runzivo@runzivo, then claude -p runs /runzivo:create, /runzivo:sandbox (uname -sm returns Linux x86_64 in the sandbox), /runzivo:status (about 7 h 58 min left, 1.47 credits used), /runzivo:sleep, /runzivo:wake and /runzivo:delete, which asks for confirmation before --yes deletes. The sandbox ID shown is a placeholder." />
+
 ## Install
 
 You need the Runzivo CLI, `rzv` 0.26.0 or later, signed in:
