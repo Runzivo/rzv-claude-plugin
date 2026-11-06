@@ -10,6 +10,8 @@ permissions:
 
 jobs:
   check:
+    # Pull requests from forks never run on Runzivo runners.
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: rzv-ubuntu-24.04-x64-2vcpu-8gb
     timeout-minutes: 10
     steps:

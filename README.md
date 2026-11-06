@@ -29,7 +29,7 @@ Inside a session, `/plugin marketplace add Runzivo/rzv-claude-plugin` and
 
 | Command | What it does |
 | - | - |
-| `/runzivo:create [name] [--size S] [--lifetime 8h\|12h\|24h]` | Create `claude-<name>`, wait for it and write the `<id>.rzv` SSH alias |
+| `/runzivo:create [name] [--size S] [--lifetime L] [--disk-gib N]` | Create `claude-<name>`, wait for it and write the `<id>.rzv` SSH alias |
 | `/runzivo:connect <id>` | Print `ssh <id>.rzv`, VS Code and Cursor commands |
 | `/runzivo:status [<id>]` | Status, time left, expiry and credits used |
 | `/runzivo:sleep <id>` / `/runzivo:wake <id>` | Stop or start the sandbox |
@@ -49,8 +49,8 @@ to the Runzivo API with your own sign-in. When you ask Claude to run work in a
 sandbox, Claude copies the files that task needs over SSH. See
 [docs/privacy.md](docs/privacy.md).
 
-Sandbox time uses your workspace's equivalent-minute credits. Only
-`/workspace` is kept when a sandbox sleeps.
+Sandbox time uses your workspace's equivalent-minute credits. `/workspace`
+is kept when a sandbox sleeps; do not rely on anything outside it.
 
 ## More
 

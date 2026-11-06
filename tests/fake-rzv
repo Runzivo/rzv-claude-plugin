@@ -13,9 +13,13 @@ case "$1" in
   --version) echo "rzv ${FAKE_VERSION:-0.26.0} (commit test)"; exit 0 ;;
   whoami) echo "Signed in as tester"; exit 0 ;;
 esac
+if [ -n "${FAKE_FAILED:-}" ] && [ "$2" = get ]; then
+  printf '{"sandbox":{"error":{"code":"%s","message":"x"},"id":"%s","status":"failed"}}\n' "$FAKE_FAILED" "$id"; exit 0
+fi
 if [ -n "${FAKE_ERROR:-}" ]; then
   [ "$json" = 1 ] && printf '{"error":"%s","message":"fake failure"}\n' "$FAKE_ERROR" >&2 || echo "rzv: fake failure" >&2
   [ "$FAKE_ERROR" = authentication_required ] && exit 3
+  [ "$FAKE_ERROR" = sandbox_not_found ] && exit 6
   exit 1
 fi
 [ "$1" = sandboxes ] || exit 2

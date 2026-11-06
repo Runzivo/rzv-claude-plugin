@@ -30,7 +30,9 @@ it in `/workspace`. Claude is told the same.
 
 ## What is kept
 
-Only `/workspace` is kept when a sandbox sleeps. Packages and files elsewhere
-are reset on wake, so install tools again or keep them under `/workspace`.
+`/workspace` is kept when a sandbox sleeps. Newer Runzivo services also keep
+the rest of the disk until the sandbox expires, so a key file outside
+`/workspace` can stay: remove it when you are done. Expiry or delete removes
+everything.
 
 Back to the [README](../README.md).

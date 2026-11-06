@@ -1,12 +1,12 @@
 ---
 description: Run commands, builds and tests in a Runzivo sandbox over SSH instead of on this machine. Use when the user asks to run work in Runzivo, on a remote VM, or in "the sandbox", or names a sandbox id (sbx_...).
 argument-hint: "[sandbox-id] [task]"
-allowed-tools: Bash(${CLAUDE_PLUGIN_ROOT}/scripts/runzivo.sh *)
+allowed-tools: Bash(${CLAUDE_PLUGIN_ROOT}/scripts/runzivo.sh status) Bash(${CLAUDE_PLUGIN_ROOT}/scripts/runzivo.sh status *) Bash(${CLAUDE_PLUGIN_ROOT}/scripts/runzivo.sh connect) Bash(${CLAUDE_PLUGIN_ROOT}/scripts/runzivo.sh connect *)
 ---
 
 # Work in a Runzivo sandbox
 
-A Runzivo sandbox is a Linux VM (Ubuntu, user with sudo) reached over SSH at
+A Runzivo sandbox is a Linux VM (Ubuntu) reached over SSH at
 the alias `<id>.rzv`. Arguments: $ARGUMENTS
 
 ## Pick the sandbox
@@ -28,8 +28,8 @@ the alias `<id>.rzv`. Arguments: $ARGUMENTS
 - Copy only what the task needs, and only when the user asked for remote work:
   `rsync -a --exclude .git --exclude node_modules ./ <id>.rzv:/workspace/<dir>/`.
   Copy results back with `rsync -a <id>.rzv:/workspace/<dir>/out/ ./out/`.
-- Keep work in `/workspace`. It is the only directory kept when the sandbox
-  sleeps; tools installed elsewhere must be installed again after a wake.
+- Keep work in `/workspace`: it is kept when the sandbox sleeps. After a wake,
+  check that tools installed outside it are still there before relying on them.
 
 ## Secrets
 
@@ -38,6 +38,8 @@ the alias `<id>.rzv`. Arguments: $ARGUMENTS
 - If the user wants a key in the sandbox, have them pipe it over SSH stdin into
   a mode 600 file outside `/workspace`, for example:
   `ssh <id>.rzv 'umask 077; mkdir -p ~/.config/app; cat > ~/.config/app/key' < local-key-file`.
+- A key file outside `/workspace` can stay until the sandbox expires or is
+  deleted. Remove it when the work is done.
 - Do not copy `~/.ssh`, cloud credentials or `.env` files to the sandbox.
 
 ## Limits
@@ -45,5 +47,7 @@ the alias `<id>.rzv`. Arguments: $ARGUMENTS
 - Each sandbox has a lifetime (8h by default) and then stops for good. Check
   time left with `${CLAUDE_PLUGIN_ROOT}/scripts/runzivo.sh status <id>`.
 - If SSH fails, run `connect <id>` again; if the sandbox expired, tell the user.
+- If a command fails, show its "Next step" line and stop. Do not change
+  environment variables, call `rzv` directly, or work around the error.
 - Running time uses the workspace's credits. When the work is done, remind the
   user that `/runzivo:sleep <id>` stops the charge.

@@ -22,8 +22,16 @@ locked=""
 log() { printf '%s %s\n' "$(date -u +%H:%M:%S)" "$*" | tee -a "$evidence/log.txt" >&2; }
 fail() { log "FAIL: $*"; exit 1; }
 
+find_sandbox() {
+  "$rzv" sandboxes list --json | python3 -I -c 'import json,sys
+for s in json.load(sys.stdin)["sandboxes"]:
+    if s["name"] == sys.argv[1] and s["status"] != "deleted": print(s["id"])' "claude-$name"
+}
+
 cleanup() {
   status=$?
+  # A create that failed half-way still leaves a sandbox: find it by name.
+  [ -n "$sandbox" ] || sandbox=$(find_sandbox 2>/dev/null || true)
   if [ -n "$sandbox" ]; then
     log "cleanup: deleting $sandbox"
     "$rzv" sandboxes delete "$sandbox" --json >/dev/null 2>&1 || true
@@ -35,14 +43,17 @@ cleanup() {
 }
 trap cleanup EXIT
 
-"$rzv" whoami > "$evidence/whoami.txt" 2>&1 || fail "rzv is not signed in"
-grep -q "^Environment: $environment " "$evidence/whoami.txt" || fail "rzv is not on the $environment environment"
-# Keep only the environment line; the rest names the account.
-grep "^Environment:" "$evidence/whoami.txt" > "$evidence/environment.txt"
-rm -f "$evidence/whoami.txt"
+# Keep only the environment line; the rest of whoami names the account.
+"$rzv" whoami 2>&1 | grep "^Environment:" > "$evidence/environment.txt" || fail "rzv is not signed in"
+grep -q "^Environment: $environment " "$evidence/environment.txt" || fail "rzv is not on the $environment environment"
 
 if [ -n "${E2E_LOCK:-}" ]; then
-  until mkdir "$E2E_LOCK" 2>/dev/null; do log "waiting for lock $E2E_LOCK"; sleep 15; done
+  deadline=$((SECONDS + ${E2E_LOCK_WAIT:-3600}))
+  until mkdir "$E2E_LOCK" 2>/dev/null; do
+    [ "$SECONDS" -lt "$deadline" ] || fail "lock $E2E_LOCK still held; remove it if no test is running"
+    log "waiting for lock $E2E_LOCK"
+    sleep 15
+  done
   locked=1
 fi
 
@@ -80,9 +91,7 @@ grep -q "rzv login" "$evidence/err-signed-out.txt" || fail "no sign-in hint when
 
 log "2. create claude-$name"
 turn create "/runzivo:create $name"
-sandbox=$("$rzv" sandboxes list --json | python3 -I -c 'import json,sys
-for s in json.load(sys.stdin)["sandboxes"]:
-    if s["name"] == sys.argv[1] and s["status"] != "deleted": print(s["id"])' "claude-$name")
+sandbox=$(find_sandbox)
 [ -n "$sandbox" ] || fail "no sandbox named claude-$name"
 log "sandbox $sandbox"
 wait_status running
@@ -101,6 +110,8 @@ credits=$(get "$sandbox" credits_used)
 log "credits_used $credits, remaining_seconds $(get "$sandbox" remaining_seconds), expires_at $(get "$sandbox" expires_at)"
 python3 -I -c 'import sys; sys.exit(0 if float(sys.argv[1]) > 0 else 1)' "$credits" || fail "no credits metered"
 
+ssh "$sandbox.rzv" 'echo kept > ~/e2e-home.txt'
+
 log "5. sleep"
 turn sleep "/runzivo:sleep $sandbox"
 wait_status stopped
@@ -112,6 +123,8 @@ log "6. wake and reconnect"
 turn wake "/runzivo:wake $sandbox"
 wait_status running
 [ "$(ssh "$sandbox.rzv" cat /workspace/e2e.txt)" = hello ] || fail "/workspace did not survive sleep"
+# Recorded, not required: the plugin promises only /workspace.
+log "home directory after wake: $(ssh "$sandbox.rzv" 'cat ~/e2e-home.txt 2>/dev/null || echo reset')"
 
 log "7. delete with confirmation"
 turn delete-ask "/runzivo:delete $sandbox"

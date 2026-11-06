@@ -36,7 +36,8 @@ Credits are equivalent minutes from the plan allowance or prepaid credit.
 ## /runzivo:sleep <id> and /runzivo:wake <id>
 
 `sleep` runs `rzv sandboxes stop`: compute charges stop and `/workspace` is
-kept. Everything outside `/workspace` resets. The lifetime timer keeps running.
+kept. Do not rely on files outside `/workspace` being kept. The lifetime timer
+keeps running.
 `wake` runs `rzv sandboxes start` and reconnects.
 
 ## /runzivo:delete <id>

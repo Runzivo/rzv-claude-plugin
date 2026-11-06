@@ -12,7 +12,6 @@ set -uo pipefail
 
 min_version=0.26.0
 install_hint='Install it with: curl -fsSL https://runzivo.dev/downloads/rzv/install.sh | sh'
-self="${BASH_SOURCE[0]}"
 rzv=""
 
 fail() {
@@ -73,21 +72,34 @@ explain() {
     plan_required | size_unavailable) hint='Choose a size your plan offers; `rzv sandboxes sizes` lists them.' ;;
     lifetime_unavailable) hint='That lifetime is not offered here. Leave it out to get 8h.' ;;
     customer_api_unavailable | service_unavailable | sandboxes_unavailable) hint='Runzivo is not reachable right now. Try again in a few minutes.' ;;
+    access_denied | insufficient_role | permission_required | api_key_scope_required) hint='Your Runzivo role does not allow this. Ask a workspace owner, or pick another workspace with `rzv login --workspace`.' ;;
+    workspace_blocked | workspace_closed) hint='This Runzivo workspace is blocked or closed. Contact Runzivo support.' ;;
     *) hint='' ;;
   esac
-  [ -z "$code" ] && [ "$status" -eq 3 ] && hint='Sign in with `rzv login` in a terminal, then try again.'
+  if [ -z "$hint" ]; then
+    case "$status" in
+      3) hint='Sign in with `rzv login` in a terminal, then try again.' ;;
+      4) hint='Your Runzivo account or role does not allow this. Check `rzv whoami`.' ;;
+      5) hint='Runzivo is not reachable right now. Try again in a few minutes.' ;;
+      6) hint='Not found in this workspace. /runzivo:status lists your sandboxes.' ;;
+    esac
+  fi
   printf 'runzivo: rzv failed (exit %s%s): %s\n' "$status" "${code:+, $code}" "$output" >&2
   [ -n "$hint" ] && printf 'Next step: %s\n' "$hint" >&2
   return "$status"
 }
 
 # rzv_json ARGS...: run rzv with --json; output on success, explain on failure.
+# stdout and stderr are kept apart so a warning never mixes into the JSON.
 rzv_json() {
-  local output status
-  output=$("$rzv" "$@" --json 2>&1)
+  local output status errors errfile
+  errfile=$(mktemp) || fail 1 "Could not create a temporary file."
+  output=$("$rzv" "$@" --json 2>"$errfile")
   status=$?
+  errors=$(cat "$errfile")
+  rm -f "$errfile"
   if [ "$status" -ne 0 ]; then
-    explain "$status" "$output"
+    explain "$status" "$errors${output:+ $output}"
     return
   fi
   printf '%s\n' "$output"
@@ -104,8 +116,9 @@ field() { sed -n "s/.*\"$1\":\"\\([^\"]*\\)\".*/\\1/p" | head -n 1; }
 
 # wait_running ID: wait until the sandbox runs (RUNZIVO_WAIT seconds, default 300).
 wait_running() {
-  local id=$1 deadline status json
-  deadline=$((SECONDS + ${RUNZIVO_WAIT:-300}))
+  local id=$1 wait=${RUNZIVO_WAIT:-300} deadline status json code
+  case "$wait" in '' | *[!0-9]*) fail 2 "RUNZIVO_WAIT must be a number of seconds." ;; esac
+  deadline=$((SECONDS + wait))
   while :; do
     json=$(rzv_json sandboxes get "$id") || return
     status=$(printf '%s' "$json" | field status)
@@ -113,7 +126,15 @@ wait_running() {
       running) return 0 ;;
       pending | starting | creating | provisioning) ;;
       stopped) fail 1 "Sandbox $id is asleep. Wake it with /runzivo:wake $id first." ;;
-      *) fail 1 "Sandbox $id is $status, so it cannot be connected to." ;;
+      *)
+        # A failed sandbox carries the reason, such as credit_exhausted.
+        code=$(printf '%s' "$json" | sed -n 's/.*"error":{"code":"\([a-z0-9_]*\)".*/\1/p' | head -n 1)
+        if [ -n "$code" ]; then
+          explain 1 "{\"error\":\"$code\",\"message\":\"Sandbox $id is $status.\"}"
+          return
+        fi
+        fail 1 "Sandbox $id is $status, so it cannot be connected to."
+        ;;
     esac
     [ "$SECONDS" -ge "$deadline" ] && fail 1 "Sandbox $id is still $status. Run /runzivo:connect $id again in a minute."
     sleep 3
@@ -134,7 +155,7 @@ Sandbox $id is running. SSH alias written: $id.rzv
   Copy:     rsync -a ./ $id.rzv:/workspace/<dir>/
   VS Code:  code --remote ssh-remote+$id.rzv /workspace
   Cursor:   cursor --remote ssh-remote+$id.rzv /workspace
-Only /workspace is kept when the sandbox sleeps; everything else resets.
+/workspace is kept when the sandbox sleeps. Do not rely on anything else being kept.
 EOF
 }
 
@@ -147,14 +168,14 @@ create() {
       --lifetime) lifetime=${2:-}; shift 2 || fail 2 "--lifetime needs a value" ;;
       --disk-gib) disk=${2:-}; shift 2 || fail 2 "--disk-gib needs a value" ;;
       -*) fail 2 "Unknown option $1. Use --size, --lifetime or --disk-gib." ;;
-      *) [ -z "$slug" ] || fail 2 "Give at most one name."; slug=$1; shift ;;
+      *) slug="${slug:+$slug-}$1"; shift ;;
     esac
   done
   case "$size" in '' | 2vcpu-8gb | 4vcpu-16gb | 8vcpu-32gb | 16vcpu-64gb) ;; *) fail 2 "--size must be 2vcpu-8gb, 4vcpu-16gb, 8vcpu-32gb or 16vcpu-64gb." ;; esac
   case "$lifetime" in '' | 8h | 12h | 24h) ;; *) fail 2 "--lifetime must be 8h, 12h or 24h." ;; esac
   case "$disk" in '') ;; *[!0-9]*) fail 2 "--disk-gib must be a whole number from 5 to 64." ;; *) [ "$disk" -ge 5 ] && [ "$disk" -le 64 ] || fail 2 "--disk-gib must be a whole number from 5 to 64." ;; esac
   # Plugin sandboxes are named claude-<slug> so their usage can be counted.
-  slug=$(printf '%s' "$slug" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9-' '-' | tr -s '-' | sed 's/^-//; s/-$//' | cut -c 1-40)
+  slug=$(printf '%s' "$slug" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9-' '-' | tr -s '-' | cut -c 1-40 | sed 's/^-//; s/-$//')
   slug=${slug#claude-}
   [ -n "$slug" ] || slug=$(date -u +%Y%m%d-%H%M%S)
   name="claude-$slug"
@@ -187,7 +208,10 @@ status() {
   fi
   need_id "$id"
   if [ -n "$json" ]; then rzv_json sandboxes get "$id"; return; fi
-  "$rzv" sandboxes get "$id" || explain $? "rzv sandboxes get failed"
+  "$rzv" sandboxes get "$id" || {
+    explain $? "rzv sandboxes get failed"
+    return
+  }
   echo "Credits are equivalent minutes from your plan allowance or prepaid credit."
 }
 
@@ -195,11 +219,14 @@ lifecycle() {
   local verb=$1 id=$2
   need_id "$id"
   rzv_json sandboxes "$verb" "$id" >/dev/null || return
-  "$rzv" sandboxes get "$id"
+  "$rzv" sandboxes get "$id" || {
+    explain $? "rzv sandboxes get failed"
+    return
+  }
   if [ "$verb" = stop ]; then
-    echo "Asleep: compute charges stop. Only /workspace is kept. Wake it with /runzivo:wake $id."
+    echo "Asleep: compute charges stop and /workspace is kept. Wake it with /runzivo:wake $id."
   else
-    echo "Waking. Reconnect with /runzivo:connect $id (only /workspace was kept)."
+    echo "Waking. Reconnect with /runzivo:connect $id. /workspace was kept."
   fi
 }
 
@@ -211,8 +238,8 @@ delete() {
       explain $? "rzv sandboxes get failed"
       return
     }
-    echo "NOT DELETED. Deleting removes this sandbox and its /workspace files for good."
-    echo "After the user confirms, run: $self delete $id --yes"
+    echo "NOT DELETED. Deleting removes this sandbox and all its files for good."
+    echo "Ask the user to confirm. Only the /runzivo:delete command may delete it."
     return 0
   fi
   rzv_json sandboxes delete "$id" || return
