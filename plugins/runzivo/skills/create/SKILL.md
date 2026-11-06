@@ -48,7 +48,7 @@ Create one Runzivo sandbox. Arguments: $ARGUMENTS
 - Use `rzv` from PATH. If the shell says command not found (exit 127), use
   `~/.local/bin/rzv` in its place. If that is missing too, stop and tell the
   user to install the Runzivo CLI and sign in:
-  `curl -fsSL https://runzivo.dev/downloads/rzv/install.sh | sh`, then `rzv login`.
+  follow https://runzivo.dev/docs/cli/ to install `rzv`, then run `rzv login`.
 - If `rzv` rejects a command or flag, run `rzv --version`. Below 0.26.0, ask
   the user to install it again with the command above.
 - Never print, copy or ask for tokens or keys. Do not change environment
