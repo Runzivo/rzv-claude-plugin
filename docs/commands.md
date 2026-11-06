@@ -1,7 +1,8 @@
 # Commands
 
-Every command runs `scripts/runzivo.sh`, which calls `rzv` with your own
-sign-in. Sandbox ids look like `sbx_0123456789abcdef01234567`.
+Each command is a skill: instructions that tell Claude which `rzv` command to
+run, with your own sign-in. Claude Code asks you to approve each command.
+Sandbox ids look like `sbx_0123456789abcdef01234567`.
 
 ## /runzivo:create [name] [--size S] [--lifetime L] [--disk-gib N]
 
@@ -13,8 +14,9 @@ Creates a sandbox named `claude-<name>` (a timestamp when no name is given).
   stops for good when its lifetime ends; it cannot be extended.
 - `--disk-gib`: 5 to 64.
 
-It waits up to five minutes for the sandbox to run (set `RUNZIVO_WAIT` in
-seconds to change this), then writes the SSH alias as `connect` does.
+Claude runs `rzv sandboxes create --name claude-<name> ... --json` once,
+writes the SSH alias as `connect` does, and waits with `ssh <id>.rzv true`
+until SSH answers. It never retries a create on its own.
 
 ## /runzivo:connect <id>
 
@@ -29,8 +31,9 @@ cursor --remote ssh-remote+<id>.rzv /workspace
 
 ## /runzivo:status [<id>]
 
-Without an id: every sandbox in the workspace that is not deleted. With an id:
-status, size, lifetime, time left, expiry, running time and credits used.
+Without an id: every sandbox in the workspace that is not deleted
+(`rzv sandboxes list --json`). With an id: status, size, lifetime, time left,
+expiry and credits used, from `rzv sandboxes get <id> --json`.
 Credits are equivalent minutes from the plan allowance or prepaid credit.
 
 ## /runzivo:sleep <id> and /runzivo:wake <id>
@@ -43,8 +46,8 @@ keeps running.
 ## /runzivo:delete <id>
 
 Shows the sandbox and asks you to confirm before it runs
-`rzv sandboxes delete`. `/runzivo:delete <id> --yes` confirms up front. It
-also removes the `<id>.rzv` SSH alias.
+`rzv sandboxes delete <id> --json`. `/runzivo:delete <id> --yes` confirms up
+front. It then removes the `~/.ssh/rzv/<id>.conf` SSH alias.
 
 ## Who can run what
 

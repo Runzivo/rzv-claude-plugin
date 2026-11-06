@@ -12,47 +12,43 @@ it. A skill teaches Claude to run builds and tests in the sandbox over SSH.
 
 ## Install
 
-You need the Runzivo CLI, `rzv` 0.26.0 or later, signed in:
+You need the Runzivo CLI, `rzv` 0.26.0 or later, signed in. Then add this
+repository as a marketplace and install the plugin from it:
 
 ```sh
 curl -fsSL https://runzivo.dev/downloads/rzv/install.sh | sh
 rzv login
-```
-
-Then add this repository as a marketplace and install the plugin:
-
-```sh
 claude plugin marketplace add Runzivo/rzv-claude-plugin
 claude plugin install runzivo@runzivo
 ```
 
-Inside a session, `/plugin marketplace add Runzivo/rzv-claude-plugin` and
-`/plugin install runzivo@runzivo` do the same.
+In a session, `/plugin install runzivo --marketplace Runzivo/rzv-claude-plugin`
+does the same. The plugin is in [plugins/runzivo](plugins/runzivo). From 0.1.0,
+run `claude plugin marketplace update runzivo`, then `claude plugin update runzivo@runzivo`.
 
 ## Commands
 
 | Command | What it does |
 | - | - |
 | `/runzivo:create [name] [--size S] [--lifetime L] [--disk-gib N]` | Create `claude-<name>`, wait for it and write the `<id>.rzv` SSH alias |
-| `/runzivo:connect <id>` | Print `ssh <id>.rzv`, VS Code and Cursor commands |
+| `/runzivo:connect <id>` | Write the alias; show `ssh <id>.rzv`, VS Code and Cursor commands |
 | `/runzivo:status [<id>]` | Status, time left, expiry and credits used |
 | `/runzivo:sleep <id>` / `/runzivo:wake <id>` | Stop or start the sandbox |
-| `/runzivo:delete <id>` | Delete after you confirm |
+| `/runzivo:delete <id> [--yes]` | Delete after you confirm |
 | `/runzivo:sandbox [<id>] [task]` | Run a task in the sandbox over SSH |
 
-Claude can use `connect`, `status` and `sandbox` on its own. It never creates,
+Each skill tells Claude which `rzv` command to run; you approve each one.
+Claude can use `connect`, `status` and `sandbox` on its own, but never creates,
 wakes, sleeps or deletes a sandbox unless you run the command. Details:
-[docs/commands.md](docs/commands.md) and [docs/sandbox-work.md](docs/sandbox-work.md).
+[docs/commands.md](docs/commands.md), [docs/sandbox-work.md](docs/sandbox-work.md).
 
 ## What it runs and sends
 
-The plugin runs one shell script, `scripts/runzivo.sh`, which calls the `rzv`
-CLI on your machine. It makes no network calls of its own, stores no tokens,
-ships no AI provider keys, and reads none of your project files. `rzv` talks
-to the Runzivo API with your own sign-in. When you ask Claude to run work in a
-sandbox, Claude copies the files that task needs over SSH. See
-[docs/privacy.md](docs/privacy.md).
-
+The plugin is Markdown instructions only: no scripts, hooks, MCP servers or
+pre-approved tools. It makes no network calls, stores no tokens, ships no AI
+provider keys and reads none of your project files. `rzv` talks to Runzivo
+with your own sign-in; Claude copies files to a sandbox over SSH only for work
+you ask for there. See [docs/privacy.md](docs/privacy.md).
 Sandbox time uses your workspace's equivalent-minute credits. `/workspace`
 is kept when a sandbox sleeps; do not rely on anything outside it.
 

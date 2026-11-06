@@ -1,9 +1,10 @@
 # What the plugin runs and sends
 
-- **Runs**: one Bash script, `scripts/runzivo.sh`, from the skills. There are
-  no hooks, MCP servers, monitors or executables on your PATH.
-- **Calls**: only the `rzv` CLI, found in `RZV_BIN`, then `PATH`, then
-  `~/.local/bin/rzv`. The script makes no network requests itself.
+- **Runs**: nothing by itself. The plugin is Markdown skills, a manifest, an
+  icon and a licence. There are no scripts, hooks, MCP servers, monitors or
+  executables, and no pre-approved tools: you approve each command Claude runs.
+- **Calls**: the skills tell Claude to run the `rzv` CLI, from `PATH` or
+  `~/.local/bin/rzv`, plus `ssh`, `rsync` and `date` for sandbox work.
 - **Sends**: `rzv` sends the sandbox name, size, lifetime and disk size you
   choose to the Runzivo API, with your existing `rzv` sign-in. The plugin adds
   no telemetry. Sandboxes it creates are named `claude-...` so Runzivo can

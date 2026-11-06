@@ -1,16 +1,21 @@
 #!/usr/bin/env bash
 # Live end-to-end test: drive the plugin's slash commands through `claude -p`
 # against a Runzivo test environment, and check each step with rzv directly.
+# The plugin grants no tools, so this test (and only this test) pre-approves
+# the commands the skills run with --allowedTools; a user approves each one.
 #
 #   RZV_PROFILE=<profile> E2E_EVIDENCE=<dir> [E2E_LOCK=<dir>] scripts/20-shared-e2e.sh
 #
 # It aborts unless `rzv whoami` reports the environment in E2E_ENVIRONMENT
 # (default: shared). It creates one sandbox and deletes it, even on failure.
 # E2E_LOCK, when set, is a directory used as a lock (mkdir) so test runs that
-# share a workspace take turns. Evidence holds command output, never tokens.
+# share a workspace take turns; it holds an owner file while the test runs.
+# Evidence holds command output, never tokens.
 set -euo pipefail
 
 here=$(cd "$(dirname "$0")/.." && pwd)
+plugin="$here/plugins/runzivo"
+claude_bin=$(command -v claude)
 evidence=${E2E_EVIDENCE:?set E2E_EVIDENCE to an evidence directory}
 environment=${E2E_ENVIRONMENT:-shared}
 model=${E2E_MODEL:-claude-haiku-5-5}
@@ -19,6 +24,7 @@ mkdir -p "$evidence"
 name="e2e-$(date -u +%m%d-%H%M%S)"
 sandbox=""
 locked=""
+nohome=""
 log() { printf '%s %s\n' "$(date -u +%H:%M:%S)" "$*" | tee -a "$evidence/log.txt" >&2; }
 fail() { log "FAIL: $*"; exit 1; }
 
@@ -37,7 +43,8 @@ cleanup() {
     "$rzv" sandboxes delete "$sandbox" --json >/dev/null 2>&1 || true
     rm -f "$HOME/.ssh/rzv/$sandbox.conf"
   fi
-  [ -n "$locked" ] && rmdir "$E2E_LOCK"
+  if [ -n "$locked" ]; then rm -f "$E2E_LOCK/owner"; rmdir "$E2E_LOCK"; fi
+  [ -z "$nohome" ] || rm -rf "$nohome"
   if [ "$status" -eq 0 ]; then log "PASS"; else log "exit $status"; fi
   log "evidence: $evidence"
 }
@@ -55,7 +62,11 @@ if [ -n "${E2E_LOCK:-}" ]; then
     sleep 15
   done
   locked=1
+  printf 'rzv-claude-plugin e2e, pid %s, since %s\n' "$$" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$E2E_LOCK/owner"
 fi
+
+# Test-only approvals for the commands the skills tell Claude to run.
+allow=(--allowedTools "Bash(rzv *)" "Bash(ssh *)" "Bash(date *)" "Bash(rm -f ~/.ssh/rzv/*)" "Bash(rm -f $HOME/.ssh/rzv/*)" "Bash(~/.local/bin/rzv *)" "Bash(command -v *)" "Bash(which *)" "Bash(ls *)")
 
 # turn <label> <prompt> [extra claude flags]: one claude -p turn with the plugin.
 turn() {
@@ -64,7 +75,7 @@ turn() {
   log "claude -p: $prompt"
   # The prompt goes on stdin: --allowedTools takes several values and would
   # swallow a prompt argument after it.
-  printf '%s' "$prompt" | claude -p --plugin-dir "$here" --model "$model" --output-format json "$@" \
+  printf '%s' "$prompt" | "$claude_bin" -p --plugin-dir "$plugin" --model "$model" --output-format json "${allow[@]}" "$@" \
     > "$evidence/$label.json" 2> "$evidence/$label.err" || fail "claude -p failed for $label"
   python3 -I - "$evidence/$label.json" <<'PY' | tee "$evidence/$label.txt" >&2
 import json, sys
@@ -86,7 +97,11 @@ wait_status() {
 }
 
 log "1. errors: no rzv, not signed in"
-RZV_BIN="$evidence/no-such-rzv" turn err-no-rzv "/runzivo:status"
+# No rzv on PATH and an empty home, so ~/.local/bin/rzv is missing too.
+nohome=$(mktemp -d "$evidence/nohome.XXXXXX")
+config_dir=${CLAUDE_CONFIG_DIR:-$HOME/.claude}
+HOME="$nohome" CLAUDE_CONFIG_DIR="$config_dir" PATH=/usr/bin:/bin \
+  turn err-no-rzv "/runzivo:status"
 grep -q "install.sh" "$evidence/err-no-rzv.txt" || fail "no install hint without rzv"
 RZV_PROFILE="e2e-no-such-profile-$$" turn err-signed-out "/runzivo:status"
 grep -q "rzv login" "$evidence/err-signed-out.txt" || fail "no sign-in hint when signed out"
@@ -101,7 +116,7 @@ grep -q "$sandbox.rzv" "$evidence/create.txt" || fail "create did not print the 
 grep -q "^# Managed by rzv" "$HOME/.ssh/rzv/$sandbox.conf" || fail "no ssh alias"
 
 log "3. a task in the sandbox over SSH, through the sandbox skill"
-turn task "/runzivo:sandbox $sandbox Run uname -sm and write the word hello to /workspace/e2e.txt in the sandbox." --allowedTools "Bash(ssh *)"
+turn task "/runzivo:sandbox $sandbox Run uname -sm and write the word hello to /workspace/e2e.txt in the sandbox."
 [ "$(ssh "$sandbox.rzv" cat /workspace/e2e.txt)" = hello ] || fail "the task did not write /workspace/e2e.txt"
 ssh "$sandbox.rzv" uname -sm | tee -a "$evidence/log.txt" >&2
 
