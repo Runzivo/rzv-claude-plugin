@@ -58,7 +58,7 @@ for name, (fm, text) in skills.items():
     granted = re.findall(r"[^\s,\[\]'\"-][^\s,\[\]'\"]*", tools.group(1)) if tools else []
     check(f"{name}: allowed-tools only Read, Grep, Glob, LS", set(granted) <= {"Read", "Grep", "Glob", "LS"}, str(granted))
     check(f"{name}: no plugin-root paths", "${" not in text, "contains ${...}")
-    check(f"{name}: tells how to install rzv", "https://runzivo.dev/docs/cli/" in text and "install.sh | sh" not in text)
+    check(f"{name}: tells how to install rzv", "https://runzivo.dev/docs/cli/" in text and not re.search(r"\|\s*(ba)?sh\b", text))
     for code in ("authentication_required", "credit_exhausted", "sandbox_capacity_busy", "sandbox_limit_reached"):
         check(f"{name}: explains {code}", code in text)
     costly = name in ("create", "sleep", "wake", "delete")

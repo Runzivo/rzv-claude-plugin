@@ -2,7 +2,9 @@
 
 ## 0.2.1 (2026-11-06)
 
-- Skills point to https://runzivo.dev/docs/cli/ to install `rzv` instead of showing a `curl | sh` command, which the plugin directory flags as an install-time risk.
+- Skills point to https://runzivo.dev/docs/cli/ to install `rzv` instead of
+  showing a `curl | sh` command, which the plugin directory flags as an
+  install-time risk.
 
 ## 0.2.0 (2026-11-06)
 

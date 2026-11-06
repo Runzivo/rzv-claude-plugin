@@ -50,7 +50,7 @@ Create one Runzivo sandbox. Arguments: $ARGUMENTS
   user to install the Runzivo CLI and sign in:
   follow https://runzivo.dev/docs/cli/ to install `rzv`, then run `rzv login`.
 - If `rzv` rejects a command or flag, run `rzv --version`. Below 0.26.0, ask
-  the user to install it again with the command above.
+  the user to install it again from that page.
 - Never print, copy or ask for tokens or keys. Do not change environment
   variables or `RZV_PROFILE`, and do not work around an error.
 

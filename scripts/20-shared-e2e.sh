@@ -102,7 +102,7 @@ log "1. errors: no rzv, not signed in"
 nohome=$(mktemp -d "$evidence/nohome.XXXXXX")
 case "$nohome" in *[\"\\]*) fail "E2E_EVIDENCE must not contain quotes or backslashes" ;; esac
 turn err-no-rzv "/runzivo:status" --settings "{\"env\":{\"HOME\":\"$nohome\",\"PATH\":\"/usr/bin:/bin\"}}"
-grep -q "install.sh" "$evidence/err-no-rzv.txt" || fail "no install hint without rzv"
+grep -q "runzivo.dev/docs/cli" "$evidence/err-no-rzv.txt" || fail "no install hint without rzv"
 RZV_PROFILE="e2e-no-such-profile-$$" turn err-signed-out "/runzivo:status"
 grep -q "rzv login" "$evidence/err-signed-out.txt" || fail "no sign-in hint when signed out"
 
